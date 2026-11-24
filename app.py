@@ -87,7 +87,7 @@ def gen():
 @admin
 def allcards():
  with db() as c: return cards([r[0] for r in c.execute('SELECT code FROM tickets WHERE registered IS NULL')],cfg(c,'title'))
-@app.post('/settings')
+@app.route('/settings',methods=['POST'])
 @admin
 def settings():
  title=request.form['title'].strip(); deadline=request.form['deadline']; state=request.form['closed']
