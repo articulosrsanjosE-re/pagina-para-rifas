@@ -313,7 +313,7 @@ def wheel():
 def draw():
     prize = request.form.get('prize', '').strip()
     with db() as c:
-   if not closed(c) or not prize or len(prize) > 150:
+        if not closed(c) or not prize or len(prize) > 150:
             return jsonify(error='Cierra inscripciones e indica el premio.'), 400
         c.execute('SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)')
         rows = [dict(r) for r in c.fetchall()]
