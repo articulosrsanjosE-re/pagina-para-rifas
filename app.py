@@ -312,6 +312,7 @@ def wheel():
 @admin
 def draw():
     prize = request.form.get('prize', '').strip()
+    with db() as c:
    if not closed(c) or not prize or len(prize) > 150:
             return jsonify(error='Cierra inscripciones e indica el premio.'), 400
         c.execute('SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)')
@@ -319,8 +320,8 @@ def draw():
         if not rows:
             return jsonify(error='No quedan participantes.'), 400
         r = secrets.choice(rows)
+        drawn = 'sorteo'
         c.execute('INSERT INTO winners(code,prize,drawn) VALUES(?,?,?)', (r['code'], prize, drawn))
-        return jsonify(code=r['code'], name=r['name'], prize=prize)
         return jsonify(code=r['code'], name=r['name'], prize=prize)
 
 
