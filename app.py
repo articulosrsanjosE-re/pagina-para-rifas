@@ -206,8 +206,7 @@ def panel():
         cnt_row = c.execute('SELECT count(*) AS cnt FROM tickets').fetchone()
         total = cnt_row['cnt'] if isinstance(cnt_row, dict) else cnt_row[0]
         wins = c.execute('SELECT w.*,t.name FROM winners w JOIN tickets t USING(code)').fetchall()
-        return page('''<h1>{{title}} · Administración</h1><div class=grid><article><h2>{{total}}</h2>Códigos generados</article><article><h2>{{rows|length}}</h2>Inscritos</article><article><h2>{{total-rows|length}}</h2>Disponibles</article></div><section><h2>Tarjetas y QR</h2><img width=150 src=/qr><p>{{base}}</p><form method=post action=/generate>''' + F + '''<label>Cantidad adicional (1–5000)</label><input type=number name=n min=1 max=5000 value=100 required><button>Generar e imprimir nuevos códigos</button></form><a class=btn href=/cards>Imprimir todos los códigos disponibles</a></section><section><h2>Configuración</h2><form method=post action=/settings>''' + F + '''<label>Nombre de la rifa</label><input name=title value="{{title}}" required maxlength=120><label>Cierre de inscripción (hora Guatemala)</label><input type=datetime-local name=deadline value="{{deadline}}"><label>Estado</label><select name=closed><option value=0 {% if not manual %}selected{% endif %}>Abierta</option><option value=1 {% if manual %}selected{% endif %}>Cerrada</option></select><button>Guardar</button></form><form method=post action=/password>''' + F + '''<label>Contraseña actual</label><input type=password name=old required><label>Nueva contraseña (mínimo 12 caracteres)</label><input type=password name=new minlength=12 required><button>Cambiar contraseña</button></form></section><section><h2>Participantes</h2><a class=btn href=/export>Exportar CSV para Excel</a><input id=search placeholder="Buscar nombre, código, país o teléfono" oninput="for(const r of document.querySelectorAll('#participants tbody tr'))r.hidden=!r.textContent.toLowerCase().includes(this.value.toLowerCase())"><div class=scroll><table id=participants><thead><tr><th>Código</th><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th>País</th><th>Fecha</th></tr></thead><tbody>{% for r in rows %}<tr>{% for k in ['code','name','address','phone','country','registered'] %}<td>{{r[k]}}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></section><section><h2>Sorteo general</h2><p>Cierra las inscripciones antes de sortear. Cada código tiene una oportunidad; un código ganador no vuelve a ganar.</p><a class=btn href=/wheel>Abrir ruleta</a><h3>Ganadores registrados</h3>{% for w in wins %}<p>{{w.prize}} — {{w.name}} ({{w.code}}) · {{w.drawn}}</p>{% endfor %}</section><form method=post action=/logout>''' + F + '<button>Cerrar sesión</button></form>', rows=rows, total=total, wins=wins, title=cfg(c, 'title'), deadline=cfg(c, 'deadline'), manual=cfg(c, 'closed') == '1', base=BASE)
-
+        return page('''<h1>{{title}} · Administración</h1><div class=grid><article><h2>{{total}}</h2>Códigos generados</article><article><h2>{{rows|length}}</h2>Inscritos</article><article><h2>{{total-rows|length}}</h2>Disponibles</article></div><section><h2>Tarjetas y QR</h2><img width=150 src=/qr><p>{{base}}</p><form method=post action=/generate>''' + F + '''<label>Cantidad adicional (1–5000)</label><input type=number name=n min=1 max=5000 value=100 required><button>Generar e imprimir nuevos códigos</button></form><a class=btn href=/cards>Imprimir todos los códigos disponibles</a></section><section><h2>Configuración</h2><form method=post action=/settings>''' + F + '''<label>Nombre de la rifa</label><input name=title value="{{title}}" required maxlength=120><label>Cierre de inscripción (hora Guatemala)</label><input type=datetime-local name=deadline value="{{deadline}}"><label>Estado</label><select name=closed><option value=0 {% if not manual %}selected{% endif %}>Abierta</option><option value=1 {% if manual %}selected{% endif %}>Cerrada</option></select><button>Guardar</button></form><form method=post action=/password>''' + F + '''<label>Contraseña actual</label><input type=password name=old required><label>Nueva contraseña (mínimo 12 caracteres)</label><input type=password name=new minlength=12 required><button>Cambiar contraseña</button></form></section><section><h2>Participantes</h2><a class=btn href=/export>Exportar CSV para Excel</a><input id=search placeholder="Buscar nombre, código, país o teléfono" oninput="for(const r of document.querySelectorAll('#participants tbody tr'))r.hidden=!r.textContent.toLowerCase().includes(this.value.toLowerCase())"><div class=scroll><table id=participants><thead><tr><th>Código</th><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th>País</th><th>Fecha</th></tr></thead><tbody>{% for r in rows %}<tr>{% for k in ['code','name','address','phone','country','registered'] %}<td>{{r[k]}}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></section><section><h2>Sorteo general</h2><p>Cierra las inscripciones antes de sortear. Cada código tiene una oportunidad; un código ganador no vuelve a ganar.</p><a class=btn href=/wheel>Abrir ruleta</a><h3>Ganadores registrados</h3>{% for w in wins %}<p>{{w.prize}} — {{w.name}} ({{w.code}}) · {{w.drawn}}</p>{% endfor %}</section><section><h2>Ruletas por país</h2><a class=btn href=/wheel>Ruleta general</a><a class=btn href="/wheel?country=Guatemala">Ruleta Guatemala</a><a class=btn href="/wheel?country=El%20Salvador">Ruleta El Salvador</a><a class=btn href="/wheel?country=Honduras">Ruleta Honduras</a><h2>Nueva rifa</h2><form method=post action=/reset onsubmit="return confirm('¿Iniciar una nueva rifa? Se borrarán ganadores y participantes registrados, pero se conservarán los códigos.')">''' + F + '''<button>Nueva rifa</button></form></section><form method=post action=/logout>''' + F + '<button>Cerrar sesión</button></form>', rows=rows, total=total, wins=wins, title=cfg(c, 'title'), deadline=cfg(c, 'deadline'), manual=cfg(c, 'closed') == '1', base=BASE)
 
 @app.get('/qr')
 def qr():
@@ -298,32 +297,65 @@ def export():
     return send_file(io.BytesIO(('\ufeff' + s.getvalue()).encode()), download_name='participantes.csv', as_attachment=True, mimetype='text/csv')
 
 
+COUNTRIES = ('Guatemala', 'El Salvador', 'Honduras')
+
+
 @app.get('/wheel')
 @admin
 def wheel():
+    country = request.args.get('country', '').strip()
+    if country not in COUNTRIES:
+        country = ''
     with db() as c:
-        cur = c.execute('SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)')   
+        if country:
+            cur = c.execute(
+                'SELECT code,name FROM tickets WHERE registered IS NOT NULL AND country=? AND code NOT IN (SELECT code FROM winners)',
+                (country,)
+            )
+        else:
+            cur = c.execute(
+                'SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)'
+            )
         entries = [dict(r) for r in cur.fetchall()]
         ended = closed(c)
-    return page('''<section style="text-align:center"><a href=/panel>Volver</a><h1>Ruleta de bendiciones</h1><p id=count>{{entries|length}} participaciones elegibles</p><canvas id=wheel width=600 height=600></canvas><form id=draw>''' + F + '''<label>Nombre del premio</label><input name=prize required maxlength=150 placeholder="Primer premio"><button {% if not ended or not entries %}disabled{% endif %}>Girar ruleta</button></form><h2 id=result aria-live=polite></h2>{% if not ended %}<p>Cierra las inscripciones primero.</p>{% endif %}<button onclick=location.reload()>Preparar siguiente premio</button></section><script>const entries={{entries|tojson}},cv=document.getElementById('wheel'),ctx=cv.getContext('2d'),n=entries.length;function paint(rot=0){ctx.clearRect(0,0,600,600);if(!n)return;for(let i=0;i<n;i++){let a=i*2*Math.PI/n-Math.PI/2+rot,b=a+2*Math.PI/n;ctx.beginPath();ctx.moveTo(300,300);ctx.arc(300,300,285,a,b);ctx.fillStyle=i%2?'#e6d4ac':'#967344';ctx.fill();if(n<=80){ctx.save();ctx.translate(300,300);ctx.rotate((a+b)/2);ctx.fillStyle=i%2?'#51351e':'white';ctx.font='14px sans-serif';ctx.textAlign='right';ctx.fillText(entries[i].name.slice(0,25),270,4);ctx.restore()}}ctx.fillStyle='#51351e';ctx.beginPath();ctx.moveTo(285,0);ctx.lineTo(315,0);ctx.lineTo(300,35);ctx.fill()}paint();document.getElementById('draw').onsubmit=async e=>{e.preventDefault();let b=e.target.querySelector('button');b.disabled=true;try{let r=await fetch('/draw',{method:'POST',body:new URLSearchParams(new FormData(e.target))});let d=await r.json();if(!r.ok)throw Error(d.error);let i=entries.findIndex(x=>x.code===d.code);let target=12*Math.PI-((i+.5)*2*Math.PI/n),start=performance.now();function frame(t){let p=Math.min(1,(t-start)/5000);paint(target*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(frame);else document.getElementById('result').textContent='¡Felicidades, '+d.name+'! · '+d.prize}requestAnimationFrame(frame)}catch(err){document.getElementById('result').textContent=err.message+' — revisa el historial antes de repetir.'}};</script>''', entries=entries, ended=ended)
+    title_wheel = f'Ruleta de bendiciones · {country}' if country else 'Ruleta de bendiciones'
+    return page('''<section style="text-align:center"><a href=/panel>Volver</a><h1>{{title_wheel}}</h1><p id=count>{{entries|length}} participaciones elegibles</p><canvas id=wheel width=600 height=600></canvas><form id=draw>''' + F + '''<input type=hidden name=country value="{{country}}"><label>Nombre del premio</label><input name=prize required maxlength=150 placeholder="Primer premio"><button {% if not ended or not entries %}disabled{% endif %}>Girar ruleta</button></form><h2 id=result aria-live=polite></h2>{% if not ended %}<p>Cierra las inscripciones primero.</p>{% endif %}<button onclick=location.reload()>Preparar siguiente premio</button></section><script>const entries={{entries|tojson}},cv=document.getElementById('wheel'),ctx=cv.getContext('2d'),n=entries.length;function paint(rot=0){ctx.clearRect(0,0,600,600);if(!n)return;for(let i=0;i<n;i++){let a=i*2*Math.PI/n-Math.PI/2+rot,b=a+2*Math.PI/n;ctx.beginPath();ctx.moveTo(300,300);ctx.arc(300,300,285,a,b);ctx.fillStyle=i%2?'#e6d4ac':'#967344';ctx.fill();if(n<=80){ctx.save();ctx.translate(300,300);ctx.rotate((a+b)/2);ctx.fillStyle=i%2?'#51351e':'white';ctx.font='14px sans-serif';ctx.textAlign='right';ctx.fillText(entries[i].name.slice(0,25),270,4);ctx.restore()}}ctx.fillStyle='#51351e';ctx.beginPath();ctx.moveTo(285,0);ctx.lineTo(315,0);ctx.lineTo(300,35);ctx.fill()}paint();document.getElementById('draw').onsubmit=async e=>{e.preventDefault();let b=e.target.querySelector('button');b.disabled=true;try{let r=await fetch('/draw',{method:'POST',body:new URLSearchParams(new FormData(e.target))});let d=await r.json();if(!r.ok)throw Error(d.error);let i=entries.findIndex(x=>x.code===d.code);let target=12*Math.PI-((i+.5)*2*Math.PI/n),start=performance.now();function frame(t){let p=Math.min(1,(t-start)/5000);paint(target*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(frame);else document.getElementById('result').textContent='¡Felicidades, '+d.name+'! · '+d.prize}requestAnimationFrame(frame)}catch(err){document.getElementById('result').textContent=err.message+' — revisa el historial antes de repetir.'}};</script>''', entries=entries, ended=ended, country=country, title_wheel=title_wheel)
 
 
 @app.post('/draw')
 @admin
 def draw():
     prize = request.form.get('prize', '').strip()
+    country = request.form.get('country', '').strip()
+    if country not in COUNTRIES:
+        country = ''
     with db() as c:
         if not closed(c) or not prize or len(prize) > 150:
             return jsonify(error='Cierra inscripciones e indica el premio.'), 400
-        cur=c.execute('SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)')
+        if country:
+            cur = c.execute(
+                'SELECT code,name FROM tickets WHERE registered IS NOT NULL AND country=? AND code NOT IN (SELECT code FROM winners)',
+                (country,)
+            )
+        else:
+            cur = c.execute(
+                'SELECT code,name FROM tickets WHERE registered IS NOT NULL AND code NOT IN (SELECT code FROM winners)'
+            )
         rows = [dict(r) for r in cur.fetchall()]
         if not rows:
             return jsonify(error='No quedan participantes.'), 400
         r = secrets.choice(rows)
-        drawn = 'sorteo'
+        drawn = country or 'sorteo'
         c.execute('INSERT INTO winners(code,prize,drawn) VALUES(?,?,?)', (r['code'], prize, drawn))
         return jsonify(code=r['code'], name=r['name'], prize=prize)
-
-
+@app.post('/reset')
+@admin
+def reset_raffle():
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        c.execute('DELETE FROM winners')
+        c.execute('UPDATE tickets SET name=NULL, address=NULL, phone=NULL, country=NULL, registered=NULL')
+        c.executemany('UPDATE config SET v=? WHERE k=?', [('0', 'closed'), ('', 'deadline')])
+    return redirect('/panel')
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8000)
